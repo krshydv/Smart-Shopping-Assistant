@@ -1,24 +1,32 @@
 # Python cache
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# macOS
-.DS_Store
+*.py[cod]
+*$py.class
 
 # Virtual environment
 venv/
+env/
+.venv/
+
+# macOS files
+.DS_Store
+
+# Environment variables
 .env
 
-# IDE
+# IDE settings
 .vscode/
+.idea/
 
 # Logs
 *.log
 
-# Temporary files
-*.tmp
+# Database files
+*.sqlite3
 
 # Output folders
 results/
+
+# Temporary files
+*.tmp
+*.swp
