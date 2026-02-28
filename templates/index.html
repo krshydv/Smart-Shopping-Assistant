@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Shopping Assistant</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(to right, #f0f4ff, #fef6f9);
+      font-family: 'Nunito', sans-serif;
+    }
+    .sidebar {
+      height: 100vh;
+      background-color: #ffffff;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+      padding: 30px 20px;
+    }
+    .sidebar h5 {
+      color: #2e7d32;
+    }
+    .main-content {
+      padding: 30px;
+    }
+    .product-card {
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease-in-out;
+    }
+    .product-card:hover {
+      transform: scale(1.02);
+    }
+    .brand-img, .platform-img {
+      height: 24px;
+      margin-right: 8px;
+    }
+    .badge-category {
+      background-color: #e3f2fd;
+      color: #0d47a1;
+    }
+    .alert-info {
+      background-color: #e0f7fa;
+      border-left: 5px solid #00acc1;
+    }
+    .section-heading {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    .btn-custom {
+      font-weight: bold;
+      border-radius: 25px;
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3 sidebar">
+      <h5 class="mb-4">🎯 Filters</h5>
+      <div class="mb-3">
+        <input type="text" id="search_query" class="form-control" placeholder="Search by name, brand...">
+        <button class="btn btn-sm btn-dark mt-2 w-100 btn-custom" onclick="searchProduct()">🔍 Search</button>
+      </div>
+      <input id="min_price" class="form-control mb-2" type="number" placeholder="Min Price ₹" />
+      <input id="max_price" class="form-control mb-2" type="number" placeholder="Max Price ₹" />
+      <input id="min_rating" class="form-control mb-2" type="number" step="0.1" placeholder="Min Rating" />
+      <input id="min_reviews" class="form-control mb-2" type="number" placeholder="Min Reviews" />
+      <input id="max_delivery_days" class="form-control mb-3" type="number" placeholder="Max Delivery Days" />
+      <button class="btn btn-primary w-100 btn-custom" onclick="fetchFilteredProducts()">Apply Filters</button>
+
+      <hr>
+
+      <h5 class="mb-3 text-success">✨ Recommend</h5>
+      <input id="brands" class="form-control mb-2" placeholder="Brands (comma-separated)" />
+      <input id="ram" class="form-control mb-3" placeholder="Preferred RAM (GB)" />
+      <button class="btn btn-success w-100 btn-custom" onclick="fetchRecommendations()">Get Recommendations</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9 main-content">
+      <h2 class="mb-4 text-primary">🛍️ Product Results</h2>
+      <div id="results" class="row g-4"></div>
+      <div id="pathInfo" class="alert alert-info mt-4 d-none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function getInputValue(id) {
+  const val = document.getElementById(id).value;
+  return val ? (isNaN(val) ? val : Number(val)) : null;
+}
+
+function getBrandIcon(brand) {
+  const icons = {
+    "apple": "https://img.icons8.com/color/48/apple-logo.png",
+    "dell": "https://img.icons8.com/color/48/dell.png",
+    "samsung": "https://img.icons8.com/color/48/samsung.png",
+    "lenovo": "https://img.icons8.com/color/48/lenovo.png",
+    "hp": "https://img.icons8.com/color/48/hp.png",
+    "asus": "https://img.icons8.com/color/48/asus.png",
+    "xiaomi": "https://img.icons8.com/color/48/xiaomi.png"
+  };
+  return icons[brand.toLowerCase()] || "https://img.icons8.com/ios-filled/50/generic-sorting.png";
+}
+
+function getPlatformIcon(platform) {
+  if (platform.toLowerCase().includes("flipkart"))
+    return "https://img.icons8.com/color/48/flipkart.png";
+  if (platform.toLowerCase().includes("amazon"))
+    return "https://img.icons8.com/color/48/amazon.png";
+  return "https://img.icons8.com/ios/50/shop.png";
+}
+
+async function searchProduct() {
+  const query = document.getElementById("search_query").value.trim();
+  if (!query) return;
+  const res = await fetch('/search', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query })
+  });
+  const result = await res.json();
+  document.getElementById("results").innerHTML = renderProducts(result);
+  document.getElementById("pathInfo").classList.add("d-none");
+}
+
+async function fetchFilteredProducts() {
+  const filters = {
+    min_price: getInputValue("min_price"),
+    max_price: getInputValue("max_price"),
+    min_rating: getInputValue("min_rating"),
+    min_reviews: getInputValue("min_reviews"),
+    max_delivery_days: getInputValue("max_delivery_days")
+  };
+  const res = await fetch('/filter', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(filters)
+  });
+  const products = await res.json();
+  document.getElementById("results").innerHTML = renderProducts(products);
+  document.getElementById("pathInfo").classList.add("d-none");
+  if (products.length >= 2) fetchShortestPath(products);
+}
+
+async function fetchRecommendations() {
+  const preferences = {
+    brand: document.getElementById("brands").value.split(',').map(b => b.trim()),
+    RAM: getInputValue("ram")
+  };
+  const res = await fetch('/recommend', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(preferences)
+  });
+  const recommended = await res.json();
+  document.getElementById("results").innerHTML = renderProducts(recommended);
+  document.getElementById("pathInfo").classList.add("d-none");
+}
+
+async function fetchShortestPath(products) {
+  const start = products[0].node_id;
+  const end = products[products.length - 1].node_id;
+  const res = await fetch('/shortest-path', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ start, end })
+  });
+  const result = await res.json();
+  if (result.path) {
+    document.getElementById("pathInfo").classList.remove("d-none");
+    document.getElementById("pathInfo").innerHTML = `
+      <strong>🧭 Shortest Path:</strong> ${result.path.join(" ➝ ")}<br />
+      <strong>💰 Total Cost:</strong> ₹${result.total_cost.toFixed(2)}
+    `;
+  }
+}
+
+function renderProducts(products) {
+  if (!products || products.length === 0) return "<p class='text-center'>❌ No matching product found.</p>";
+  return products.map(p => `
+    <div class="col-md-6 col-lg-4">
+      <div class="card product-card">
+        <div class="card-body">
+          <h5 class="card-title">
+            <img src="${getBrandIcon(p.brand)}" class="brand-img" alt="brand"> ${p.product_name}
+          </h5>
+          <p class="card-text">💸 ₹${p.price} <span class="badge badge-category">${p.category}</span></p>
+          <p class="card-text">⭐ ${p.seller_rating} | 🗣️ ${p.review_count} Reviews</p>
+          <p class="card-text">💾 ${p.RAM} RAM | 🔋 ${p.storage} Storage</p>
+          <p class="card-text">🚚 ${p.delivery_time}</p>
+          <img src="${getPlatformIcon(p.platform)}" class="platform-img" alt="platform">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
