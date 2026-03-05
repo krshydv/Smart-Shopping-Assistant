@@ -1,7 +1,6 @@
-# Smart Shopping Assistant
+# CartIQ (Smart Shopping Assistant)
 
-Smart Shopping Assistant is a Python-based web application designed to help users make informed purchasing decisions through structured product analysis and recommendation logic. The system processes product-related data and presents results through a web interface built with Flask.
-
+CartIQ is a Python-based web application designed to assist users in making informed purchasing decisions. The system analyzes structured product data and generates recommendation insights using a modular architecture built with Flask. It focuses on providing a scalable backend structure for product evaluation, comparison, and decision support.
 ## Overview
 
 The objective of this project is to simulate an intelligent assistant capable of analyzing shopping data and assisting users in identifying suitable products based on defined criteria.
